@@ -9,42 +9,32 @@ bot = telebot.TeleBot('1792282194:AAHS45Vu6zVNPvDA2WMItgCiFLr1E8tNypw')
 conn = sqlite3.connect('course prj(flask)/shop.db', check_same_thread=False)
 cursor = conn.cursor()
 
-
 def db_table_val(user_id: int, username: str, first_name: str, last_name: str):
 	cursor.execute('INSERT INTO USERS (user_id, username, first_name, last_name) VALUES (?, ?, ?, ?)', (user_id, username, first_name, last_name))
 	conn.commit()
 
 @bot.message_handler(commands=['db'])
 
-def get_surname(message):
-    global regId
-    bot.send_message(message.from_user.id, "Введи id")
-    regId = message.text
-    bot.register_next_step_handler(message, get_nick)
-
-
 def get_nick(message):
-    global regNick
-    regNick = message.from_user.first_name
-    bot.send_message(message.from_user.id, "Ваш ник добавлен, введите имя.")
+    bot.send_message(message.from_user.id, "Введите Имя")
     bot.register_next_step_handler(message, get_name)
 
 def get_name(message):
     global regFirst_name
-    regFirst_name = message.from_user.first_name
-    bot.send_message(message.from_user.id, "Ваше имя добавлено, введите фамилию")
-    bot.register_next_step_handler(message, get_lastname)
-
-def get_lastname(message):
+    regFirst_name = message.text
     global lasTname
-    lasTname = message.from_user.first_name
-    bot.send_message(message.from_user.id, "Ваша фамилия добавлена.")
-	
-db_table_val(user_id=regId, username=regNick, first_name=regFirst_name, last_name=lasTname)
-
+    bot.send_message(message.from_user.id, "Введите фамилию")
+    bot.register_next_step_handler(message, get_lastname)
+    
+def get_lastname(message):
+    lasTname = message.text
+    bot.send_message(message.from_user.id, "Ваше имя и фамилия добавлены.")
+    us_id = message.from_user.id
+    us_nick = message.from_user.first_name
+    db_table_val(user_id=us_id, username=us_nick, first_name=regFirst_name, last_name=lasTname)
+     
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-
     keyboard = telebot.types.ReplyKeyboardMarkup(True)
     keyboard.row('/Помощь', '/Телефон')
     keyboard.row('/Аддрес', '/Сайт')
@@ -81,4 +71,3 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, 'Не понимаю ваш вопрос.')
 
 bot.polling(none_stop=True)
-
