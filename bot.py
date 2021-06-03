@@ -4,7 +4,7 @@ import sqlite3
 from sqlite3 import Error
 from time import ctime
 
-bot = telebot.TeleBot('1792282194:AAHS45Vu6zVNPvDA2WMItgCiFLr1E8tNypw')
+bot = telebot.TeleBot('')
 
 conn = sqlite3.connect('course prj(flask)/shop.db', check_same_thread=False)
 cursor = conn.cursor()
