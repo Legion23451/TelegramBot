@@ -1,7 +1,7 @@
 import telebot
 from time import ctime
 from telebot import types
-from test import *
+from sql import *
 conn = sqlite3.connect('course prj(flask)/shop.db', check_same_thread=False)
 cursor = conn.cursor()
 
