@@ -2,10 +2,11 @@ import telebot
 from time import ctime
 from telebot import types
 from sql import *
+from config import TOKEN
 conn = sqlite3.connect('course prj(flask)/shop.db', check_same_thread=False)
 cursor = conn.cursor()
 
-bot = telebot.TeleBot('1792282194:AAHS45Vu6zVNPvDA2WMItgCiFLr1E8tNypw')
+bot = telebot.TeleBot(TOKEN)
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     keyboard = telebot.types.ReplyKeyboardMarkup(True)
