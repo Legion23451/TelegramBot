@@ -5,7 +5,7 @@ from sql import *
 
 f = open('config.txt')
 TOKEN = f.readline()
-bot = telebot.TeleBot('1792282194:AAHS45Vu6zVNPvDA2WMItgCiFLr1E8tNypw')
+bot = telebot.TeleBot('')
 
 @bot.message_handler(commands=['start'])
 def send_start(message):
@@ -53,19 +53,16 @@ def get_name(message):
     regFirst_name = message.text
     bot.send_message(message.from_user.id, "Введите фамилию")
     bot.register_next_step_handler(message, get_lastname)
-    return regFirst_name
 
 def get_lastname(message):
     lasTname = message.text
     bot.send_message(message.from_user.id, "Введите телефон без 8")
     bot.register_next_step_handler(message, get_phone)
-    return lasTname
 
 def get_phone(message):
     phonenumber = message.text
     bot.send_message(message.from_user.id, "Опишите вашу проблему.")
     bot.register_next_step_handler(message, get_eror)
-    return phonenumber
 
 def get_eror(message):
     error_text = message.text
