@@ -8,13 +8,14 @@ cursor = conn.cursor()
 f = open('config.txt', 'r')
 TOKEN = f.read()
 bot = telebot.TeleBot(TOKEN)
-
+admin = "777"
 @bot.message_handler(commands=['start'])
 def send_start(message):
     keyboard = telebot.types.ReplyKeyboardMarkup(True)
     keyboard.row('/Помощь', '/Телефон')
     keyboard.row('/Аддрес', '/Сайт')
-    keyboard.row('/Анкета')
+    keyboard.row('/Регистрация', '/Товары')
+    keyboard.row('/Удаление')
     bot.send_message(message.chat.id, f'Здравствуйте {message.from_user.first_name} .Я бот помощник интернет магазина flask shop. Для работы с мной используйте команды /', reply_markup=keyboard)
 
 @bot.message_handler(commands=['Аддрес'])
@@ -37,9 +38,9 @@ def url(message):
     markup.add(btn_my_site)
     bot.send_message(message.chat.id, "Нажми на кнопку и перейдите на наш сайт.", reply_markup = markup)  
 
-@bot.message_handler(commands=['reg'])
+@bot.message_handler(commands=['Регистрация'])
 def get_reg(message):
-    bot.send_message(message.from_user.id,'Введите Login')
+    bot.send_message(message.chat.id,'Введите Login')
     bot.register_next_step_handler(message, get_login)
 
 def get_login(message):
@@ -47,13 +48,12 @@ def get_login(message):
     login_user = message.text
     cursor.execute("SELECT login FROM user where login = ?", (login_user,))
     log = cursor.fetchone()
-    logo = log[0]
-    if logo == login_user:   
-        bot.send_message(message.from_user.id, "Login уже используется, введите новый")
-        bot.register_next_step_handler(message, get_reg(message))
-    else:
-        bot.send_message(message.from_user.id,'Введите Пароль')
+    conn.commit()
+    if log is None:   
+        bot.send_message(message.chat.id,'Введите Пароль')
         bot.register_next_step_handler(message, get_pass)
+    else:
+        bot.send_message(message.chat.id, "Login уже используется \n Для регистрации введите /Регистрация ")
 
 def get_pass(message):
     global pass_user
@@ -63,18 +63,61 @@ def get_pass(message):
 def get_insert(message):
     userp = ("")
     userinf = ("") 
-    insert_db(id = 19569, login = login_user, password = pass_user, userpic = userp, userinfo = userinf)
+    id_user = None
+    insert_db(id = id_user, login = login_user, password = pass_user, userpic = userp, userinfo = userinf)
+    conn.commit()
+    cursor.close()
     bot.send_message(message.from_user.id,'Вы успешно зарегестрировались в нашей системе')
 
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(commands=['Товары'])
 def get_text_messages(message):
-    if message.text.lower() == 'как':
-        bot.send_message(message.from_user.id, 'Часто задаваемые вопросы:')
-        bot.send_message(message.chat.id, 'Как сделать заказ?')
-        bot.send_message(message.chat.id, 'Как зарегестрироваться на сайте?')
-        bot.send_message(message.chat.id, 'Как отменить заказ?')
+        cursor.execute("SELECT title, price FROM item ")
+        log = cursor.fetchall()
+        conn.commit()
+        bot.send_message(message.chat.id, 'Товары в наличии ')
+        text = str(log)
+        a = text.strip("[]")
+        count = 1
+        i = 0
+        b = len(a)
+        newtext = ''
+        for i in range(b):
+            if a[i] == ',':
+                if count % 2 == 0:        
+                    newtext +='\n'
+                    count += 1
+                else:
+                    count += 1
+            else:
+                if a[i] == '(' or a[i] == ')':
+                    if a[i] == ')':
+                        newtext += ' руб'
+                else:
+                    newtext +=a[i]
+        bot.send_message(message.chat.id, newtext)
+
+@bot.message_handler(commands=['Удаление'])
+def get_delete(message):
+    bot.send_message(message.chat.id, 'Введите код доступа')
+    bot.register_next_step_handler(message, get_code)
+
+def get_code(message):
+    code = message.text
+    if code == admin:
+        bot.send_message(message.chat.id, 'Введите артикул товара')
+        bot.register_next_step_handler(message, get_art)
     else:
-        bot.send_message(message.from_user.id, 'Не понимаю ваш вопрос.')
+        bot.send_message(message.chat.id, 'Код не верный')
 
+def get_art(message):
+    art = message.text
+    cursor.execute("SELECT iditem FROM item where iditem = ?", (art))
+    log = cursor.fetchall()
+    if log is None:
+        bot.send_message(message.chat.id, 'Нечего удалять')
+    else:
+        cursor.execute("DELETE FROM item WHERE iditem = ?", (art))
+        conn.commit()
+        bot.send_message(message.chat.id, 'Удалено.')
 
-bot.polling(none_stop=True)
+bot.polling(none_stop=True, interval=0)
