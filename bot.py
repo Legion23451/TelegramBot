@@ -1,24 +1,24 @@
 import telebot
-from time import ctime
 from telebot import types
-from telebot.apihelper import get_chat_member
 from sql import *
+
 conn = sqlite3.connect('shop.db', check_same_thread=False)
 cursor = conn.cursor()
 f = open('config.txt', 'r')
 TOKEN = f.read()
 bot = telebot.TeleBot(TOKEN)
 admin = "777"
+
 @bot.message_handler(commands=['start'])
 def send_start(message):
     keyboard = telebot.types.ReplyKeyboardMarkup(True)
     keyboard.row('/Помощь', '/Телефон')
-    keyboard.row('/Аддрес', '/Сайт')
-    keyboard.row('/Регистрация', '/Товары')
-    keyboard.row('/Удаление')
+    keyboard.row('/Адрес', '/Сайт')
+    keyboard.row('/Анкета', '/Товары')
+    keyboard.row('/Удаление', '/Заявки')
     bot.send_message(message.chat.id, f'Здравствуйте {message.from_user.first_name} .Я бот помощник интернет магазина flask shop. Для работы с мной используйте команды /', reply_markup=keyboard)
 
-@bot.message_handler(commands=['Аддрес'])
+@bot.message_handler(commands=['Адрес'])
 def send_addres(message):
     bot.send_message(message.chat.id, 'Адрес: г. Москва, ул. Льва Толстого, 16,')
     bot.send_photo(message.chat.id, 'https://www.google.com/maps/vt/data=zX0dR23DdbyWHNSb2pVHtR154RqHYvAAVeABVOjbqCaMAsZ2HNdPcEIdEiEOUjtp5KnH6EpkisaFdSIyMPW9j_QyRiXvQtJl1V5-KjiiyZKcN902jy7Zgf81n_tFEerYsLr-AKN2jFGwv4-QO8PYKiJq2-o63CrCfMqYRCF_J4PrnJ7njUEwHwgRDuTXkLnO1z7sB3kxr3xaNKIqEg1hAZu9Vv78hp89lBBGfJ8-DpXkCpGs6ox4B2dXcOelBKClxqHO6QioHYg5V_0i_4NudYkGlp1zo0EBTGmEc4awWfPSr6e39ePS2ZiX')
@@ -38,36 +38,34 @@ def url(message):
     markup.add(btn_my_site)
     bot.send_message(message.chat.id, "Нажми на кнопку и перейдите на наш сайт.", reply_markup = markup)  
 
-@bot.message_handler(commands=['Регистрация'])
-def get_reg(message):
-    bot.send_message(message.chat.id,'Введите Login')
-    bot.register_next_step_handler(message, get_login)
+@bot.message_handler(commands=['Анкета'])     
+def get_nick(message):
+    bot.send_message(message.from_user.id, "Введите Имя")
+    bot.register_next_step_handler(message, get_name)
 
-def get_login(message):
-    global login_user
-    login_user = message.text
-    cursor.execute("SELECT login FROM user where login = ?", (login_user,))
-    log = cursor.fetchone()
+def get_name(message):
+    global user_name
+    user_name = message.text
+    bot.send_message(message.from_user.id, "Введите email")
+    bot.register_next_step_handler(message, get_lastname)
+
+def get_lastname(message):
+    global user_email
+    user_email = message.text
+    bot.send_message(message.from_user.id, "Опишите вашу проблему.")
+    bot.register_next_step_handler(message, get_phone)
+    
+def get_phone(message):
+    global user_eror
+    user_eror = message.text
+    bot.send_message(message.from_user.id, "Введите телефон")
+    bot.register_next_step_handler(message, get_eror)
+
+def get_eror(message):
+    user_phone = message.text
+    bot.send_message(message.chat.id, "Ваша заявка принята.")
+    insert_db(name = user_name, Email = user_email, problem = user_eror, phone = user_phone)
     conn.commit()
-    if log is None:   
-        bot.send_message(message.chat.id,'Введите Пароль')
-        bot.register_next_step_handler(message, get_pass)
-    else:
-        bot.send_message(message.chat.id, "Login уже используется \n Для регистрации введите /Регистрация ")
-
-def get_pass(message):
-    global pass_user
-    pass_user = message.text
-    bot.register_next_step_handler(message, get_insert(message))
-
-def get_insert(message):
-    userp = ("")
-    userinf = ("") 
-    id_user = None
-    insert_db(id = id_user, login = login_user, password = pass_user, userpic = userp, userinfo = userinf)
-    conn.commit()
-    cursor.close()
-    bot.send_message(message.from_user.id,'Вы успешно зарегестрировались в нашей системе')
 
 @bot.message_handler(commands=['Товары'])
 def get_text_messages(message):
@@ -109,6 +107,7 @@ def get_code(message):
     else:
         bot.send_message(message.chat.id, 'Код не верный')
 
+
 def get_art(message):
     art = message.text
     cursor.execute("SELECT iditem FROM item where iditem = ?", (art))
@@ -119,5 +118,28 @@ def get_art(message):
         cursor.execute("DELETE FROM item WHERE iditem = ?", (art))
         conn.commit()
         bot.send_message(message.chat.id, 'Удалено.')
+
+@bot.message_handler(commands=['Заявки'])
+def get_text_messages(message):
+        cursor.execute("SELECT * FROM help ")
+        log = cursor.fetchall()
+        conn.commit()
+        bot.send_message(message.chat.id, 'Активные заявки ')
+        text = str(log)
+        a = text.strip("[]")
+        count = 1
+        i = 0
+        b = len(a)
+        newtext2 = ''
+        for i in range(b):
+            if a[i] == ',':
+                if count % 5 == 0:        
+                    newtext2 +='\n\n'
+                    count += 1
+                else:
+                    count += 1
+            else:
+                newtext2 +=a[i]
+        bot.send_message(message.chat.id, newtext2)
 
 bot.polling(none_stop=True, interval=0)
